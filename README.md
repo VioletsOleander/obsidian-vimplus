@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This is a simple plugin used for loading `vimrc.json` to customize obsidian's vim mode.
+This is a simple plugin used for loading `vimrc.jsonc` to customize obsidian's vim mode.
 
 I coded it primarily for personal use, therefore this plugin only contains minimal features to
 satisfy my own needs.

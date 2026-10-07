@@ -1,3 +1,4 @@
+import * as jc from "jsonc-parser";
 import { Notice, Plugin } from "obsidian";
 import * as z from "zod";
 
@@ -45,10 +46,10 @@ export default class Vimrc extends Plugin {
   }
 
   private async loadConfig() {
-    const file = this.app.vault.getFileByPath("vimrc.json");
+    const file = this.app.vault.getFileByPath("vimrc.jsonc");
 
     if (file === null) {
-      const message = "Failed to find vimrc.json in vault root";
+      const message = "Failed to find vimrc.jsonc in vault root";
 
       console.log(message);
       new Notice(message);
@@ -58,10 +59,10 @@ export default class Vimrc extends Plugin {
     }
 
     const content = await this.app.vault.read(file);
-    const result = configSchema.safeParse(JSON.parse(content));
+    const result = configSchema.safeParse(jc.parse(content));
 
     if (!result.success) {
-      const message = "Falied to parse vimrc.json:\n" + z.prettifyError(result.error);
+      const message = "Falied to parse vimrc.jsonc:\n" + z.prettifyError(result.error);
 
       console.log(message);
       new Notice(message);
