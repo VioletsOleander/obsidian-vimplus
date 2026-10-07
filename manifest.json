@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-vimrc",
+  "name": "Vimrc",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "vimrc support in obsidian",
+  "author": "VioletsOleander",
+  "isDesktopOnly": false
+}

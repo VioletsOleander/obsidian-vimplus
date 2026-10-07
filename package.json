@@ -1,0 +1,23 @@
+{
+  "name": "obsidian-vimrc",
+  "version": "1.0.0",
+  "description": "vimrc support in obsidian",
+  "license": "MIT",
+  "author": "VioletsOleander",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc -noEmit -skipLibCheck && node build.js production",
+    "watch": "node build.js"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@replit/codemirror-vim": "^6.4.0",
+    "@types/node": "^26.6.4",
+    "esbuild": "^0.28.2",
+    "obsidian": "^1.13.1",
+    "typescript": "^7.0.2"
+  }
+}
