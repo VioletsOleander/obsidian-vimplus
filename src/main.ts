@@ -3,20 +3,22 @@ import { MarkdownView, Notice, Plugin } from "obsidian";
 import * as z from "zod";
 
 import { configSchema } from "./schema";
+import { Vim } from "./vim";
 
-import type { Pos, Vim } from "@replit/codemirror-vim";
+import type { Pos } from "@replit/codemirror-vim";
 import type { App, HeadingCache } from "obsidian";
 
 import type { Config } from "./schema";
 
-// Vim API reference: https://codemirror.net/5/doc/manual.html#vimapi
-// codemirror-vim keeps its API as same in codemirror 5, and works both under codemirror 5 and 6.
 export default class Vimrc extends Plugin {
+  #vim!: Vim;
   #config: Config | null = null;
 
   override async onload() {
     // We need to init in a callback after the global vim object is constructed by obsidian.
     this.app.workspace.onLayoutReady(async () => {
+      this.#vim = new Vim();
+
       await this.#loadConfig();
       this.#applyConfig();
 
@@ -70,40 +72,36 @@ export default class Vimrc extends Plugin {
       return;
     }
 
-    const vim = getVimInstance();
-
     if (this.#config.unmaps !== undefined) {
       for (const unmap of this.#config.unmaps) {
-        vim.unmap(unmap.lhs, unmap.context);
+        this.#vim.unmap(unmap);
       }
     }
 
     if (this.#config.keymaps !== undefined) {
       for (const keymap of this.#config.keymaps) {
-        vim.noremap(keymap.lhs, keymap.rhs, keymap.context);
+        this.#vim.noremap(keymap);
       }
     }
   }
 
   #revertConfig() {
-    // map is revertable but unmap is not revetable
+    // map is revertable but unmap is not revertable
+    // well, theoretically unmap is revertable, by remap the default keymap defined in
+    // https://github.com/replit/codemirror-vim/blob/master/packages/codemirror-vim-core/vim.js
     if (this.#config === null || this.#config.keymaps === undefined) {
       return;
     }
 
-    const vim = getVimInstance();
-
     if (this.#config.keymaps !== undefined) {
       for (const keymap of this.#config.keymaps) {
-        vim.unmap(keymap.lhs, keymap.context);
+        this.#vim.unmap({ lhs: keymap.lhs, context: keymap.context });
       }
     }
   }
 
   #mapMotions() {
-    const vim = getVimInstance();
-
-    vim.defineMotion("GotoPreviousHeading", (_cm, _pos, args): Pos | null => {
+    this.#vim.api.defineMotion("GotoPreviousHeading", (_cm, _pos, args): Pos | null => {
       const offset = -1 * args.repeat;
       const heading = findHeadingByOffset(this.app, offset);
 
@@ -113,7 +111,7 @@ export default class Vimrc extends Plugin {
 
       return { line: heading.position.start.line, ch: heading.position.start.col };
     });
-    vim.defineMotion("GotoNextHeading", (_cm, _pos, args): Pos | null => {
+    this.#vim.api.defineMotion("GotoNextHeading", (_cm, _pos, args): Pos | null => {
       const offset = 1 * args.repeat;
       const heading = findHeadingByOffset(this.app, offset);
 
@@ -124,24 +122,10 @@ export default class Vimrc extends Plugin {
       return { line: heading.position.start.line, ch: heading.position.start.col };
     });
 
-    vim.mapCommand("[[", "motion", "GotoPreviousHeading", null, { context: "normal" });
-    vim.mapCommand("[[", "motion", "GotoPreviousHeading", null, { context: "visual" });
-    vim.mapCommand("]]", "motion", "GotoNextHeading", null, { context: "normal" });
-    vim.mapCommand("]]", "motion", "GotoNextHeading", null, { context: "visual" });
+    // By default map normal, visual, operator pending mode.
+    this.#vim.api.mapCommand("[[", "motion", "GotoPreviousHeading", null, {});
+    this.#vim.api.mapCommand("]]", "motion", "GotoNextHeading", null, {});
   }
-}
-
-/** Return the global Vim object. */
-function getVimInstance(): Vim {
-  // Directly using Vim object from codemirror-vim will not work, and I don't konw why.
-  // We have to access the global to access the obsidian registered Vim object.
-  // This is undocumented, so stability is not guaranteed.
-
-  // Notice that we must use window.CodeMirrorAdapter to acquire the codemirror instance, instead of
-  // window.CodeMiorror, otherwise the method invocations will just not work.
-
-  // @ts-ignore
-  return window.CodeMirrorAdapter.Vim;
 }
 
 /** Find the nearest previous/next `offset`-ed heading in current file

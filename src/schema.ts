@@ -4,13 +4,13 @@ export const keymapSchema = z.object(
   {
     lhs: z.string(),
     rhs: z.string(),
-    context: z.union([z.literal("normal"), z.literal("visual"), z.literal("insert")]),
+    context: z.optional(z.union([z.literal("normal"), z.literal("visual"), z.literal("insert")])),
   },
 );
 
 export const unmapSchema = z.object({
   lhs: z.string(),
-  context: z.union([z.literal("normal"), z.literal("visual"), z.literal("insert")]),
+  context: z.optional(z.union([z.literal("normal"), z.literal("visual"), z.literal("insert")])),
 });
 
 export const configSchema = z.object(
