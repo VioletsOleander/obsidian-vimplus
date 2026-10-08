@@ -6,6 +6,7 @@ import { configSchema } from "./schema";
 
 import type { Pos, Vim } from "@replit/codemirror-vim";
 import type { App, HeadingCache } from "obsidian";
+
 import type { Config } from "./schema";
 
 // Vim API reference: https://codemirror.net/5/doc/manual.html#vimapi
@@ -45,11 +46,7 @@ export default class Vimrc extends Plugin {
     const file = this.app.vault.getFileByPath("vimrc.jsonc");
 
     if (file === null) {
-      const message = "Failed to find vimrc.jsonc in vault root";
-
-      console.debug(message);
-      new Notice(message);
-
+      new Notice("Failed to find vimrc.jsonc in vault root");
       this.#config = null;
 
       return;
@@ -59,11 +56,7 @@ export default class Vimrc extends Plugin {
     const result = configSchema.safeParse(jc.parse(content));
 
     if (!result.success) {
-      const message = "Falied to parse vimrc.jsonc:\n" + z.prettifyError(result.error);
-
-      console.debug(message);
-      new Notice(message);
-
+      new Notice("Falied to parse vimrc.jsonc:\n" + z.prettifyError(result.error));
       this.#config = null;
 
       return;
@@ -74,7 +67,6 @@ export default class Vimrc extends Plugin {
 
   #applyConfig() {
     if (this.#config === null) {
-      console.debug("Skip applying config because config is null");
       return;
     }
 
@@ -82,13 +74,10 @@ export default class Vimrc extends Plugin {
     for (const keymap of this.#config.keymaps) {
       vim.noremap(keymap.lhs, keymap.rhs, keymap.context);
     }
-
-    console.debug("Successfully applied config");
   }
 
   #revertConfig() {
     if (this.#config === null) {
-      console.debug("Skip reverting config because config is null");
       return;
     }
 
@@ -96,8 +85,6 @@ export default class Vimrc extends Plugin {
     for (const keymap of this.#config.keymaps) {
       vim.unmap(keymap.lhs, keymap.context);
     }
-
-    console.debug("Successfully reverted config");
   }
 
   #mapMotions() {
@@ -128,8 +115,6 @@ export default class Vimrc extends Plugin {
     vim.mapCommand("[[", "motion", "GotoPreviousHeading", null, { context: "visual" });
     vim.mapCommand("]]", "motion", "GotoNextHeading", null, { context: "normal" });
     vim.mapCommand("]]", "motion", "GotoNextHeading", null, { context: "visual" });
-
-    console.debug("Successfully mapped motions");
   }
 }
 
@@ -153,7 +138,6 @@ function getVimInstance(): Vim {
  */
 function findHeadingByOffset(app: App, offset: number): HeadingCache | null {
   if (offset === 0) {
-    console.debug("Expecte offset not to be zero");
     return null;
   }
 
