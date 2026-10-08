@@ -71,19 +71,32 @@ export default class Vimrc extends Plugin {
     }
 
     const vim = getVimInstance();
-    for (const keymap of this.#config.keymaps) {
-      vim.noremap(keymap.lhs, keymap.rhs, keymap.context);
+
+    if (this.#config.unmaps !== undefined) {
+      for (const unmap of this.#config.unmaps) {
+        vim.unmap(unmap.lhs, unmap.context);
+      }
+    }
+
+    if (this.#config.keymaps !== undefined) {
+      for (const keymap of this.#config.keymaps) {
+        vim.noremap(keymap.lhs, keymap.rhs, keymap.context);
+      }
     }
   }
 
   #revertConfig() {
-    if (this.#config === null) {
+    // map is revertable but unmap is not revetable
+    if (this.#config === null || this.#config.keymaps === undefined) {
       return;
     }
 
     const vim = getVimInstance();
-    for (const keymap of this.#config.keymaps) {
-      vim.unmap(keymap.lhs, keymap.context);
+
+    if (this.#config.keymaps !== undefined) {
+      for (const keymap of this.#config.keymaps) {
+        vim.unmap(keymap.lhs, keymap.context);
+      }
     }
   }
 
