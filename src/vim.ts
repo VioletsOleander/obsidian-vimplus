@@ -31,7 +31,11 @@ export class Vim {
   }
 
   unmap(unmap: Unmap) {
-    // @ts-ignore
-    this.api.unmap(unmap.lhs);
+    if (unmap.context === undefined) {
+      // @ts-ignore
+      this.api.unmap(unmap.lhs);
+    } else {
+      this.api.unmap(unmap.lhs, unmap.context);
+    }
   }
 }
