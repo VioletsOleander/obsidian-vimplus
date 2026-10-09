@@ -32,6 +32,6 @@ export class Vim {
 
   unmap(unmap: Unmap) {
     // @ts-ignore
-    this.api.unmap(unmap.lhs, unmap.context);
+    this.api.unmap(unmap.lhs);
   }
 }
