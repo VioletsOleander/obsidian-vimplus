@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-vimrc",
+  "name": "obsidian-vimplus",
   "version": "1.0.0",
-  "description": "vimrc support in obsidian",
+  "description": "Better vim experience in obsidian",
   "license": "MIT",
   "author": "VioletsOleander",
   "type": "module",

@@ -1,9 +1,9 @@
 {
-  "id": "obsidian-vimrc",
-  "name": "Vimrc",
+  "id": "obsidian-vimplus",
+  "name": "VimPlus",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "vimrc support in obsidian",
+  "description": "Better vim experience in obsidian",
   "author": "VioletsOleander",
   "isDesktopOnly": false
 }

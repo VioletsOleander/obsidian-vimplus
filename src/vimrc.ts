@@ -13,7 +13,7 @@ export const unmapSchema = z.object({
   context: z.optional(z.union([z.literal("normal"), z.literal("visual"), z.literal("insert")])),
 });
 
-export const configSchema = z.object(
+export const vimrcSchema = z.object(
   {
     keymaps: z.optional(z.array(keymapSchema)),
     unmaps: z.optional(z.array(unmapSchema)),
@@ -22,4 +22,4 @@ export const configSchema = z.object(
 
 export type Keymap = z.infer<typeof keymapSchema>;
 export type Unmap = z.infer<typeof unmapSchema>;
-export type Config = z.infer<typeof configSchema>;
+export type Vimrc = z.infer<typeof vimrcSchema>;

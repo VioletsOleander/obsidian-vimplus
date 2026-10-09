@@ -1,106 +1,135 @@
-import * as jc from "jsonc-parser";
+import * as jsonc from "jsonc-parser";
 import { MarkdownView, Notice, Plugin } from "obsidian";
 import * as z from "zod";
 
-import { configSchema } from "./schema";
 import { Vim } from "./vim";
+import { vimrcSchema } from "./vimrc";
 
 import type { Pos } from "@replit/codemirror-vim";
-import type { App, HeadingCache } from "obsidian";
+import type { App, HeadingCache, PluginManifest } from "obsidian";
 
-import type { Config } from "./schema";
+import type { Keymap, Vimrc } from "./vimrc";
 
-export default class Vimrc extends Plugin {
-  #vim!: Vim;
-  #config: Config | null = null;
+// Codemirror default keymaps, used to revert unmap.
+// According to https://github.com/replit/codemirror-vim/blob/master/packages/codemirror-vim-core/vim.js#L2043,
+// to make sure unmap for default keymaps work, unmap should has the exact context as the default keymap.
+// For example, for <Space>, the unmap must have undefined context.
+const defaultKeymaps: Keymap[] = [
+  { lhs: "<Space>", rhs: "l" },
+];
+
+export default class VimPlus extends Plugin {
+  #vim: Vim;
+  #vimrc: Vimrc | null;
+  #motions: string[] | null;
+
+  constructor(app: App, manifest: PluginManifest) {
+    super(app, manifest);
+
+    this.#vim = new Vim();
+    this.#vimrc = null;
+    this.#motions = null;
+  }
 
   override async onload() {
-    // We need to init in a callback after the global vim object is constructed by obsidian.
+    // Defer to layout ready to ensure vimrc.jsonc will be founded.
     this.app.workspace.onLayoutReady(async () => {
-      this.#vim = new Vim();
-
-      await this.#loadConfig();
-      this.#applyConfig();
-
-      this.#mapMotions();
+      await this.#loadVimrc();
+      this.#loadMotions();
     });
 
     this.addCommand({
       id: "reload-vimrc",
       name: "Reload vimrc",
       callback: async () => {
-        this.#revertConfig();
-
-        await this.#loadConfig();
-        this.#applyConfig();
+        // Codemirror mantains keymaps in a hidden global array "defaultKeymaps", and defining or removing
+        // keymaps is equivalent to inserting and removing items to that array.
+        // There is no deduplication mechnism, so define a keymap multiple times will result in many duplicate items in that array.
+        this.#unloadVimrc();
+        await this.#loadVimrc();
       },
     });
+
     this.addCommand({
       id: "unload-vimrc",
       name: "Unload vimrc",
       callback: async () => {
-        this.#revertConfig();
+        this.#unloadVimrc();
       },
     });
   }
 
-  async #loadConfig() {
-    const file = this.app.vault.getFileByPath("vimrc.jsonc");
-
-    if (file === null) {
-      new Notice("Failed to find vimrc.jsonc in vault root");
-      this.#config = null;
-
-      return;
-    }
-
-    const content = await this.app.vault.read(file);
-    const result = configSchema.safeParse(jc.parse(content));
-
-    if (!result.success) {
-      new Notice("Falied to parse vimrc.jsonc:\n" + z.prettifyError(result.error));
-      this.#config = null;
-
-      return;
-    }
-
-    this.#config = result.data;
+  override onunload() {
+    this.#unloadVimrc();
+    this.#unloadMotions();
   }
 
-  #applyConfig() {
-    if (this.#config === null) {
+  async #loadVimrc() {
+    if (this.#vimrc !== null) {
       return;
     }
 
-    if (this.#config.unmaps !== undefined) {
-      for (const unmap of this.#config.unmaps) {
+    const file = this.app.vault.getFileByPath("vimrc.jsonc");
+    if (file === null) {
+      new Notice("Failed to find vimrc.jsonc in vault root");
+      return;
+    }
+
+    const content = await this.app.vault.cachedRead(file);
+    const result = vimrcSchema.safeParse(jsonc.parse(content));
+    if (!result.success) {
+      new Notice("Falied to parse vimrc.jsonc:\n" + z.prettifyError(result.error));
+      return;
+    }
+
+    const vimrc = result.data;
+
+    if (vimrc.unmaps !== undefined) {
+      for (const unmap of vimrc.unmaps) {
         this.#vim.unmap(unmap);
       }
     }
 
-    if (this.#config.keymaps !== undefined) {
-      for (const keymap of this.#config.keymaps) {
+    if (vimrc.keymaps !== undefined) {
+      for (const keymap of vimrc.keymaps) {
         this.#vim.noremap(keymap);
       }
     }
+
+    this.#vimrc = vimrc;
   }
 
-  #revertConfig() {
-    // map is revertable but unmap is not revertable
-    // well, theoretically unmap is revertable, by remap the default keymap defined in
-    // https://github.com/replit/codemirror-vim/blob/master/packages/codemirror-vim-core/vim.js
-    if (this.#config === null || this.#config.keymaps === undefined) {
+  #unloadVimrc() {
+    if (this.#vimrc === null) {
       return;
     }
 
-    if (this.#config.keymaps !== undefined) {
-      for (const keymap of this.#config.keymaps) {
+    if (this.#vimrc.unmaps !== undefined) {
+      for (const unmap of this.#vimrc.unmaps) {
+        const keymap = defaultKeymaps.find((keymap) => {
+          return keymap.lhs === unmap.lhs;
+        });
+
+        if (keymap !== undefined) {
+          this.#vim.map(keymap);
+        }
+      }
+    }
+
+    if (this.#vimrc.keymaps !== undefined) {
+      for (const keymap of this.#vimrc.keymaps) {
         this.#vim.unmap({ lhs: keymap.lhs, context: keymap.context });
       }
     }
+
+    this.#vimrc = null;
   }
 
-  #mapMotions() {
+  #loadMotions() {
+    if (this.#motions !== null) {
+      return;
+    }
+
     this.#vim.api.defineMotion("GotoPreviousHeading", (_cm, _pos, args): Pos | null => {
       const offset = -1 * args.repeat;
       const heading = findHeadingByOffset(this.app, offset);
@@ -122,9 +151,23 @@ export default class Vimrc extends Plugin {
       return { line: heading.position.start.line, ch: heading.position.start.col };
     });
 
-    // By default map normal, visual, operator pending mode.
+    // By default, map in normal, visual, operator pending mode.
     this.#vim.api.mapCommand("[[", "motion", "GotoPreviousHeading", null, {});
     this.#vim.api.mapCommand("]]", "motion", "GotoNextHeading", null, {});
+
+    this.#motions = ["[[", "]]"];
+  }
+
+  #unloadMotions() {
+    if (this.#motions === null) {
+      return;
+    }
+
+    for (const motion in this.#motions) {
+      this.#vim.unmap({ lhs: motion });
+    }
+
+    this.#motions = null;
   }
 }
 

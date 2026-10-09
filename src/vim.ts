@@ -1,6 +1,6 @@
 import type { Vim as CodeMirrorVimAPI } from "@replit/codemirror-vim";
 
-import type { Keymap, Unmap } from "./schema";
+import type { Keymap, Unmap } from "./vimrc";
 
 // Vim API reference: https://codemirror.net/5/doc/manual.html#vimapi
 // codemirror-vim keeps its API as same in codemirror 5, and works both under codemirror 5 and 6.
@@ -20,6 +20,11 @@ export class Vim {
     this.api = window.CodeMirrorAdapter.Vim;
   }
 
+  map(keymap: Keymap) {
+    // @ts-ignore
+    this.api.map(keymap.lhs, keymap.rhs, keymap.context);
+  }
+
   noremap(keymap: Keymap) {
     // Passing undefined context is actually allowed, see:
     // https://github.com/replit/codemirror-vim/blob/master/packages/codemirror-vim-core/vim.js#L4138
@@ -31,11 +36,7 @@ export class Vim {
   }
 
   unmap(unmap: Unmap) {
-    if (unmap.context === undefined) {
-      // @ts-ignore
-      this.api.unmap(unmap.lhs);
-    } else {
-      this.api.unmap(unmap.lhs, unmap.context);
-    }
+    // @ts-ignore
+    this.api.unmap(unmap.lhs, unmap.context);
   }
 }
