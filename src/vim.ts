@@ -17,7 +17,7 @@ export class Vim {
     // window.CodeMiorror, otherwise the method invocations will just not work.
 
     // @ts-ignore
-    this.api = window.CodeMirrorAdapter.Vim;
+    this.api = window.CodeMirrorAdapter.Vim; // eslint-disable-line
   }
 
   map(keymap: Keymap) {

@@ -163,7 +163,7 @@ export default class VimPlus extends Plugin {
       return;
     }
 
-    for (const motion in this.#motions) {
+    for (const motion of this.#motions) {
       this.#vim.unmap({ lhs: motion });
     }
 
