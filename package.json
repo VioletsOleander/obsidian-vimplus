@@ -7,8 +7,9 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "build": "tsc -noEmit -skipLibCheck && node build.js production",
-    "watch": "node build.js"
+    "watch": "node esbuild.config.js",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.js production",
+    "lint": "eslint ."
   },
   "dependencies": {
     "jsonc-parser": "^3.3.1",
@@ -16,9 +17,11 @@
   },
   "devDependencies": {
     "@replit/codemirror-vim": "^6.4.0",
-    "@types/node": "^26.6.4",
     "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "^0.4.2",
+    "globals": "^17.13.0",
     "obsidian": "^1.13.1",
-    "typescript": "^7.0.2"
+    "typescript": "^5.4.5"
   }
 }
