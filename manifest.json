@@ -1,6 +1,6 @@
 {
   "id": "obsidian-vimplus",
-  "name": "VimPlus",
+  "name": "Vimplus",
   "version": "1.0.0",
   "minAppVersion": "1.5.7",
   "description": "Better vim experience in obsidian",
