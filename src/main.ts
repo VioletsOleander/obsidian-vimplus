@@ -22,6 +22,7 @@ export default class VimPlus extends Plugin {
   #vim: Vim;
   #vimrc: Vimrc | null;
   #motions: string[] | null;
+  #actions: string[] | null;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
@@ -29,6 +30,7 @@ export default class VimPlus extends Plugin {
     this.#vim = new Vim();
     this.#vimrc = null;
     this.#motions = null;
+    this.#actions = null;
   }
 
   override async onload() {
@@ -36,6 +38,7 @@ export default class VimPlus extends Plugin {
     this.app.workspace.onLayoutReady(async () => {
       await this.#loadVimrc();
       this.#loadMotions();
+      this.#loadActions();
     });
 
     this.addCommand({
@@ -62,6 +65,7 @@ export default class VimPlus extends Plugin {
   override onunload() {
     this.#unloadVimrc();
     this.#unloadMotions();
+    this.#unloadActions();
   }
 
   async #loadVimrc() {
@@ -168,6 +172,43 @@ export default class VimPlus extends Plugin {
     }
 
     this.#motions = null;
+  }
+
+  #loadActions() {
+    if (this.#actions !== null) {
+      return;
+    }
+
+    this.#vim.api.defineAction("GotoPreviousTab", (_cm, args) => {
+      for (let i = 0; i < args.repeat; i++) {
+        // @ts-ignore
+        this.app.commands.executeCommandById("workspace:previous-tab"); // eslint-disable-line
+      }
+    });
+    this.#vim.api.defineAction("GotoNextTab", (_cm, args) => {
+      for (let i = 0; i < args.repeat; i++) {
+        // @ts-ignore
+        this.app.commands.executeCommandById("workspace:next-tab"); // eslint-disable-line
+      }
+    });
+
+    // By default, map in normal, visual, operator pending mode.
+    this.#vim.api.mapCommand("[t", "action", "GotoPreviousTab", null, {});
+    this.#vim.api.mapCommand("]t", "action", "GotoNextTab", null, {});
+
+    this.#actions = ["[t", "]t"];
+  }
+
+  #unloadActions() {
+    if (this.#actions === null) {
+      return;
+    }
+
+    for (const action of this.#actions) {
+      this.#vim.unmap({ lhs: action });
+    }
+
+    this.#actions = null;
   }
 }
 
